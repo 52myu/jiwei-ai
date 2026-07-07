@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 极客百宝箱 - 傻瓜式工具合集</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --primary-color: #007aff;
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --accent-green: #34c759;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-bottom: 30px;
+        }
+
+        /* 顶部 Header */
+        header {
+            background: var(--card-bg);
+            padding: 20px 16px;
+            border-bottom: 1px solid #e5e5ea;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-box {
+            display: flex;
+            background: #f2f2f7;
+            padding: 8px 12px;
+            border-radius: 8px;
+            align-items: center;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            width: 100%;
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* 分类导航条 (横向滚动) */
+        .nav-tabs {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 12px 16px;
+            gap: 8px;
+            background: var(--bg-color);
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-btn {
+            background: #e5e5ea;
+            color: var(--text-main);
+            border: none;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        /* 工具列表网格 */
+        .tools-grid {
+            padding: 0 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 工具卡片 */
+        .tool-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #f2f2f7;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .tool-id {
+            font-size: 12px;
+            background: #e3efff;
+            color: var(--primary-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .tool-title {
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+            margin-left: 8px;
+        }
+
+        .tool-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        /* 操作按钮 */
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            flex: 1;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: #f2f2f7;
+            color: var(--primary-color);
+        }
+
+        /* 吐司提示框 (Toast) */
+        .toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(0,0,0,0.8);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🛠️ AI 极客百宝箱</h1>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索工具名称或编号（如：001）..." oninput="filterTools()">
+        </div>
+    </header>
+
+    <div class="nav-tabs" id="navTabs">
+        <button class="tab-btn active" onclick="switchCategory('all')">全部</button>
+        <button class="tab-btn" onclick="switchCategory('career')">职业搞钱</button>
+        <button class="tab-btn" onclick="switchCategory('fun')">趣味测算</button>
+        <button class="tab-btn" onclick="switchCategory('efficiency')">AI自动化</button>
+    </div>
+
+    <main class="tools-grid" id="toolsGrid">
+        <!-- 卡片由 JS 动态渲染 -->
+    </main>
+
+    <div class="toast" id="toast">复制成功！请前往灵光AI粘贴使用</div>
+
+<script>
+    // 仓库数据：后续通过增加这个数组即可上新工具
+    const toolsData = [
+        {
+            id: "001",
+            category: "career",
+            title: "硬核职业性格神级指令",
+            desc: "对应抖音爆款测试视频。丢给灵光AI，一键深度剖析你的职场天赋，拒绝繁琐手工计分。",
+            prompt: "你现在是一名资深职业规划顾问。请严格结合MBTI、霍兰德职业兴趣及五大人格理论，对我进行多维交叉的职业天赋评定。接下来请采用一问一答的方式，分阶段向我提问，每次只提1个基于实际职场决策的场景题，总共提问5次。当我全部回答完毕后，请为我输出一份格式严谨、包含核心职业方向及轻资产创业建议的详尽报告。明白请回复：‘测试开始，请听第一题：’"
+        },
+        {
+            id: "002",
+            category: "efficiency",
+            title: "小红书文案一键排版表情大师",
+            desc: "自媒体必备。把死板的文字瞬间转化为带爆款钩子开头、自带Emoji、分段清晰的小红书风格网感文案。",
+            prompt: "请将我发给你的文本，重写为符合小红书爆款逻辑的文案。要求：1. 重新设计一个带有强烈悬念或痛点的‘钩子’标题；2. 适当分段，每段开头或结尾搭配相关的Emoji表情；3. 自带热门标签。请回复‘请发送你需要排版的原始文案：’"
+        },
+        {
+            id: "003",
+            category: "fun",
+            title: "Bazi格局自动化拆解词",
+            desc: "传统文化极简平民化。输入生日，让AI用子平派逻辑快速梳理五行强弱与核心Geju建议。",
+            prompt: "你是一位精通子平派传统哲学的命理专家。请在我输入出生年月日时（八字）后，用最通俗易懂的现代生活语言，为我拆解核心能量强弱，并着重从职业选择、流年顺逆的角度给出具体的开运建议。字数要求控制在500字以内，不使用晦涩专业黑话。明白请回复：‘请输入你的生辰八字（如：1995年x月x日x时）：’"
+        }
+    ];
+
+    let currentCategory = 'all';
+
+    // 初始化渲染
+    function renderTools(data) {
+        const grid = document.getElementById('toolsGrid');
+        grid.innerHTML = '';
+
+        if(data.length === 0) {
+            grid.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:40px 0; font-size:14px;">暂无相关工具，主快马加鞭上新中...</p>`;
+            return;
+        }
+
+        data.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'tool-card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="tool-id">#${item.id}</span>
+                    <h3 class="tool-title">${item.title}</h3>
+                </div>
+                <p class="tool-desc">${item.desc}</p>
+                <div class="card-actions">
+                    <button class="btn btn-primary" onclick="copyPrompt('${encodeURIComponent(item.prompt)}')">
+                        📋 复制灵光AI指令
+                    </button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // 复制到剪贴板逻辑 (完美适配手机端)
+    function copyPrompt(encodedPrompt) {
+        const text = decodeURIComponent(encodedPrompt);
+        
+        // 优先使用现代 API
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast();
+            }).catch(() => {
+                fallbackCopy(text);
+            });
+        } else {
+            fallbackCopy(text);
+        }
+    }
+
+    // 老旧手机浏览器降级兼容方案
+    function fallbackCopy(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast();
+        } catch (err) {
+            alert('复制失败，请尝试手动长按文本复制');
+        }
+        document.body.removeChild(textArea);
+    }
+
+    // 吐司提示
+    function showToast() {
+        const toast = document.getElementById('toast');
+        toast.className = 'toast show';
+        setTimeout(() => {
+            toast.className = 'toast';
+        }, 2500);
+    }
+
+    // 分类切换
+    function switchCategory(cat) {
+        currentCategory = cat;
+        // 更新 Tab 样式
+        const btns = document.querySelectorAll('.tab-btn');
+        btns.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        filterTools();
+    }
+
+    // 综合过滤 (分类 + 搜索)
+    function filterTools() {
+        const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        
+        const filtered = toolsData.filter(item => {
+            const matchCategory = (currentCategory === 'all' || item.category === currentCategory);
+            const matchKeyword = (item.title.toLowerCase().includes(keyword) || item.id.includes(keyword) || item.desc.toLowerCase().includes(keyword));
+            return matchCategory && matchKeyword;
+        });
+
+        renderTools(filtered);
+    }
+
+    // 首次载入
+    renderTools(toolsData);
+</script>
+</body>
+</html>
