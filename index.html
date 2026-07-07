@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI 极客百宝箱 - 傻瓜式工具合集</title>
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -25,7 +26,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding-bottom: 30px;
+            padding-bottom: 20px;
         }
 
         /* 顶部 Header */
@@ -63,7 +64,7 @@
             outline: none;
         }
 
-        /* 分类导航条 (横向滚动) */
+        /* 分类导航条 */
         .nav-tabs {
             display: flex;
             overflow-x: auto;
@@ -165,15 +166,25 @@
             color: #fff;
         }
 
-        .btn-secondary {
-            background: #f2f2f7;
+        /* 底部统计样式 */
+        footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 35px;
+            padding: 10px 0;
+            line-height: 1.6;
+        }
+        
+        .counter-num {
+            font-weight: 600;
             color: var(--primary-color);
         }
 
-        /* 吐司提示框 (Toast) */
+        /* 吐司提示框 */
         .toast {
             position: fixed;
-            bottom: 40px;
+            bottom: 60px;
             left: 50%;
             transform: translateX(-50%) translateY(20px);
             background: rgba(0,0,0,0.8);
@@ -210,13 +221,20 @@
     </div>
 
     <main class="tools-grid" id="toolsGrid">
-        <!-- 卡片由 JS 动态渲染 -->
-    </main>
+        </main>
+
+    <footer>
+        <div>数据实时统计</div>
+        <div>
+            本站总访问量 <span id="busuanzi_value_site_pv" class="counter-num">--</span> 次
+            <span style="margin: 0 4px; color: #e5e5ea;">|</span>
+            访客人数 <span id="busuanzi_value_site_uv" class="counter-num">--</span> 人
+        </div>
+    </footer>
 
     <div class="toast" id="toast">复制成功！请前往灵光AI粘贴使用</div>
 
 <script>
-    // 仓库数据：后续通过增加这个数组即可上新工具
     const toolsData = [
         {
             id: "001",
@@ -243,13 +261,12 @@
 
     let currentCategory = 'all';
 
-    // 初始化渲染
     function renderTools(data) {
         const grid = document.getElementById('toolsGrid');
         grid.innerHTML = '';
 
         if(data.length === 0) {
-            grid.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:40px 0; font-size:14px;">暂无相关工具，主快马加鞭上新中...</p>`;
+            grid.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:40px 0; font-size:14px;">暂无相关工具，快马加鞭上新中...</p>`;
             return;
         }
 
@@ -272,11 +289,8 @@
         });
     }
 
-    // 复制到剪贴板逻辑 (完美适配手机端)
     function copyPrompt(encodedPrompt) {
         const text = decodeURIComponent(encodedPrompt);
-        
-        // 优先使用现代 API
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast();
@@ -288,7 +302,6 @@
         }
     }
 
-    // 老旧手机浏览器降级兼容方案
     function fallbackCopy(text) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
@@ -305,7 +318,6 @@
         document.body.removeChild(textArea);
     }
 
-    // 吐司提示
     function showToast() {
         const toast = document.getElementById('toast');
         toast.className = 'toast show';
@@ -314,31 +326,24 @@
         }, 2500);
     }
 
-    // 分类切换
     function switchCategory(cat) {
         currentCategory = cat;
-        // 更新 Tab 样式
         const btns = document.querySelectorAll('.tab-btn');
         btns.forEach(btn => btn.classList.remove('active'));
         event.target.classList.add('active');
-        
         filterTools();
     }
 
-    // 综合过滤 (分类 + 搜索)
     function filterTools() {
         const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-        
         const filtered = toolsData.filter(item => {
             const matchCategory = (currentCategory === 'all' || item.category === currentCategory);
             const matchKeyword = (item.title.toLowerCase().includes(keyword) || item.id.includes(keyword) || item.desc.toLowerCase().includes(keyword));
             return matchCategory && matchKeyword;
         });
-
         renderTools(filtered);
     }
 
-    // 首次载入
     renderTools(toolsData);
 </script>
 </body>
