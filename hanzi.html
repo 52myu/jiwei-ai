@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>汉字结构化检索与音韵工作台</title>
+  <script src="https://cdn.jsdelivr.net/npm/cnchar/cnchar.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cnchar-radical/cnchar.radical.min.js"></script>
+  <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+  <style>
+    body { 
+      font-family: system-ui, sans-serif; margin: 0; padding: 12px; color: #333; background: #f4f6f9; 
+      height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; 
+      zoom: 0.92; 
+    }
+    h2 { margin-top: 0; margin-bottom: 8px; text-align: center; color: #2c3e50; font-size: 1.4rem; }
+    
+    #appContainer { display: none; flex-direction: column; flex: 1; min-height: 0; }
+    
+    .layout { display: flex; gap: 12px; max-width: 1400px; margin: 0 auto; flex: 1; overflow: hidden; width: 100%; min-height: 0; }
+    .left-panel { flex: 1; min-width: 380px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 3px; }
+    .right-panel { flex: 1.6; display: flex; flex-direction: column; gap: 10px; min-width: 480px; min-height: 0; }
+    
+    .card { background: #fff; border: 1px solid #e2e8f0; padding: 0.8rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; height: 100%; box-sizing: border-box; }
+    .card-title { margin-top: 0; margin-bottom: 0.5rem; border-bottom: 2px solid #edf2f7; padding-bottom: 6px; font-size: 1rem; color: #4a5568; display: flex; justify-content: space-between; align-items: center; }
+    
+    .tabs { display: flex; border-bottom: 2px solid #e9ecef; margin-bottom: 8px; gap: 8px; }
+    .tab { padding: 4px 10px; cursor: pointer; font-weight: bold; color: #666; font-size: 0.9rem; border-bottom: 2px solid transparent; transition: 0.2s; }
+    .tab.active { color: #3182ce; border-bottom: 2px solid #3182ce; }
+    
+    input[type="text"], input[type="number"] { padding: 6px; width: 85px; margin-right: 6px; border: 1px solid #cbd5e0; border-radius: 5px; outline: none; font-size: 0.9rem; }
+    button { padding: 6px 12px; cursor: pointer; background: #3182ce; color: white; border: none; border-radius: 5px; font-weight: 500; font-size: 0.9rem; transition: 0.2s; }
+    button:hover { background: #2b6cb0; }
+    
+    #status { font-size: 0.85rem; margin-bottom: 8px; padding: 6px; background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 5px; color: #2b6cb0; text-align: center; max-width: 1400px; margin: 0 auto 8px auto; width: 100%; box-sizing: border-box; }
+    
+    .stroke-group { margin-bottom: 0.6rem; display: flex; align-items: flex-start; }
+    .stroke-title { font-size: 0.8rem; color: #3182ce; font-weight: bold; width: 45px; min-width: 45px; padding-top: 2px; border-right: 2px solid #edf2f7; margin-right: 8px; }
+    .tags-container { flex: 1; }
+    
+    .rad-tag, .word-tag, .result-char { 
+      display: inline-block; padding: 3px 6px; margin: 0 3px 4px 0; 
+      background: #edf2f7; border-radius: 4px; cursor: pointer; font-size: 0.95rem;
+      transition: all 0.15s; user-select: none;
+    }
+    .rad-tag:hover { background: #3182ce; color: white; }
+    .word-tag { background: #feebc8; color: #c05621; }
+    .word-tag:hover { background: #dd6b20; color: #fff; }
+    .rad-tag.empty { color: #cbd5e0; cursor: not-allowed; background: #f7fafc; pointer-events: none; }
+    
+    .result-char { background: #ebf8ff; color: #2b6cb0; font-weight: 500; border: 1px solid #bee3f8; }
+    .result-char:hover { background: #3182ce; color: white; transform: scale(1.1); }
+    
+    .result-box { flex: 1; min-height: 200px; overflow-y: auto; line-height: 1.8; padding-right: 3px; }
+    
+    .basket-float-btn {
+      position: fixed; bottom: 20px; right: 20px; z-index: 999;
+      background: #dd6b20; color: white; padding: 10px 16px;
+      border-radius: 50px; font-weight: bold; font-size: 0.95rem;
+      box-shadow: 0 8px 20px rgba(221,107,32,0.4);
+      cursor: pointer; border: none; display: flex; align-items: center; gap: 6px;
+    }
+    .basket-float-btn:hover { background: #c05621; }
+    .basket-float-panel { position: fixed; bottom: 75px; right: 20px; z-index: 998; width: 850px; height: 460px; box-shadow: 0 15px 25px rgba(0,0,0,0.12); display: none; }
+    
+    .table-wrapper { flex: 1; overflow-y: auto; overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 5px; }
+    table { width: 100%; border-collapse: collapse; text-align: center; font-size: 0.85rem; min-width: 820px; }
+    th { background: #f7fafc; color: #4a5568; padding: 8px; font-weight: 600; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; z-index: 10; }
+    td { padding: 6px; border-bottom: 1px solid #edf2f7; background: #fff; }
+    
+    .table-input { width: 90%; padding: 3px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.8rem; box-sizing: border-box; }
+    .del-btn { background: #fed7d7; color: #9b2c2c; padding: 2px 6px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.8rem; }
+    .del-btn:hover { background: #e53e3e; color: white; }
+    
+    .drawer-close-header { display: none; }
+    #securityAuth { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:9999; justify-content:center; align-items:center; flex-direction:column; font-size:1.3rem; color:#e53e3e; font-weight:bold; padding: 20px; text-align: center; }
+
+    @media (max-width: 768px) {
+      body { height: auto; overflow: auto; padding: 8px; zoom: 1; }
+      .layout { flex-direction: column; height: auto; overflow: visible; gap: 10px; }
+      .left-panel { min-width: 0; width: 100%; flex: none; }
+      
+      .right-panel {
+        position: fixed; top: 0; right: -100%; width: 85%; height: 100vh;
+        background: #f4f6f9; z-index: 1000; min-width: 0; padding: 8px; box-sizing: border-box;
+        box-shadow: -5px 0 20px rgba(0,0,0,0.15);
+        transition: right 0.25s ease-in-out;
+      }
+      .right-panel.drawer-open { right: 0; }
+      .drawer-close-header { display: block; }
+
+      .basket-float-panel { width: calc(100% - 16px); left: 8px; right: 8px; bottom: 70px; height: 420px; z-index: 1001; }
+      .basket-float-btn { bottom: 12px; right: 12px; padding: 8px 14px; font-size: 0.85rem; z-index: 1002; }
+      input[type="text"], input[type="number"] { width: 55px; }
+      .stroke-title { width: 35px; min-width: 35px; font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="securityAuth">
+    <div>⚠️ 访问未授权</div>
+    <div id="securitySub" style="font-size:0.95rem; color:#718096; font-weight:normal; margin-top:10px;">未携带合法Token特征，字典加载已被强制阻断。</div>
+  </div>
+
+  <div id="appContainer">
+    <h2>汉字结构化检索与音韵工作台</h2>
+    <div id="status">正在安全扫描并初始化 data network...</div>
+
+    <div class="layout">
+      <div class="left-panel">
+        <div class="card" id="mainPanel" style="display: none; height: auto;">
+          <div class="tabs">
+            <div class="tab active" id="tab-radical" onclick="switchView('radical')">标准部首查字</div>
+            <div class="tab" id="tab-nanjianzi" onclick="switchView('nanjianzi')">难检字表</div>
+          </div>
+          <div id="panelContent"></div>
+        </div>
+
+        <div class="card" style="height: auto;">
+          <h3 class="card-title">高级自定义检索</h3>
+          <div style="margin-bottom: 6px;">
+            <input type="text" id="radicalInput" placeholder="偏旁" maxlength="1">
+            <button onclick="search('radical')">搜偏旁</button>
+          </div>
+          <div>
+            <input type="number" id="strokeInput" placeholder="笔画" min="1" max="64">
+            <button onclick="search('stroke')">搜笔画</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-panel" id="rightResultPanel">
+        <div class="card">
+          <h3 class="card-title">
+            <span>🎯 候选字池</span>
+            <button class="drawer-close-header" onclick="closeDrawer()" style="background:#718096; padding:3px 8px; font-size:0.8rem;">返回修改 ✖</button>
+          </h3>
+          <div id="resultFilter" style="display: none; margin-bottom: 8px; font-size:0.8rem;">
+            <span>🎯 二次筛选 (总笔画):</span>
+            <select id="strokeFilterSelect" onchange="applyStrokeFilter()"></select>
+          </div>
+          <div id="result" class="result-box">👈 请在左侧选择或输入条件进行检索</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="basket-float-btn" onclick="toggleBasket()">
+      <span>🛒 选字篮</span>
+      <span id="basketCountBadge" style="background:#fff; color:#dd6b20; padding:1px 6px; border-radius:20px; font-size:0.8rem;">0</span>
+    </button>
+
+    <div class="card basket-float-panel" id="basketPanel">
+      <h3 class="card-title" style="margin-bottom: 0.4rem;">
+        <span>🛒 选字工作台 (<span id="basketCount" style="color:#3182ce;">0</span>)</span>
+        
+        <div style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; margin-left: auto; margin-right: 12px; background: #f7fafc; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+          <span style="font-weight: bold; color: #4a5568;">日元:</span>
+          <select id="riyuanSelect" onchange="renderBasket()" style="padding: 2px; border-radius: 4px; border: 1px solid #cbd5e0; outline: none; font-size: 0.8rem; cursor: pointer;">
+            <option value="none">未选择</option>
+            <option value="甲">甲</option><option value="乙">乙</option><option value="丙">丙</option><option value="丁">丁</option><option value="戊">戊</option>
+            <option value="己">己</option><option value="庚">庚</option><option value="辛">辛</option><option value="壬">壬</option><option value="癸">癸</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 6px;">
+          <button onclick="exportBasketText()" style="background:#2b6cb0; padding:3px 8px; font-size:0.75rem;">导出文本</button>
+          <button onclick="clearBasket()" style="background:#e53e3e; padding:3px 8px; font-size:0.75rem;">清空</button>
+          <button onclick="toggleBasket()" style="background:#718096; padding:3px 8px; font-size:0.75rem;">收起 ✖</button>
+        </div>
+      </h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:45px;">汉字</th>
+              <th>五音</th>
+              <th>五行</th>
+              <th>部位</th>
+              <th>声母</th>
+              <th>拼音</th>
+              <th>部首</th>
+              <th style="width:35px;">笔画</th>
+              <th style="width:55px; color: #dd6b20;">六神</th>
+              <th>备注</th>
+              <th>字义</th>
+              <th style="width:45px;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="basketBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="busuanzi_container" style="text-align: center; font-size: 0.75rem; color: #718096; margin-top: 10px; padding: 4px 0;">
+      ✨ 本页阅读量：<span id="busuanzi_value_page_pv" style="color:#3182ce; font-weight:bold;"></span> 次 | 
+      总访问人数：<span id="busuanzi_value_site_uv" style="color:#3182ce; font-weight:bold;"></span> 人
+    </div>
+  </div>
+
+  <script>
+    let isAccessGranted = false; 
+
+    // 安全哨兵
+    (function checkSecurityToken() {
+      const urlParams = new URLSearchParams(window.location.search);
+      let token = urlParams.get('token');
+      if (token === 'admin') { isAccessGranted = true; showAppContainer(); return; }
+      if (!token) { triggerLock("访问拒绝：缺少Token口令。"); return; }
+      try {
+        token = token.replace(/-/g, '+').replace(/_/g, '/');
+        while (token.length % 4) { token += '='; }
+        const rawStr = decodeURIComponent(escape(atob(token)));
+        const secretSalt = "QianP_Zen_2026_🔥";
+        let jsonStr = "";
+        for (let i = 0; i < rawStr.length; i++) { jsonStr += String.fromCharCode(rawStr.charCodeAt(i) ^ secretSalt.charCodeAt(i % secretSalt.length)); }
+        const payload = JSON.parse(jsonStr);
+        const timeDiff = (Date.now() - payload.ts) / 1000 / 60; 
+        if (timeDiff < 0 || timeDiff > payload.exp) { triggerLock("访问拒绝：凭证已过期。"); return; }
+        isAccessGranted = true; showAppContainer();
+      } catch (e) { triggerLock("访问拒绝：安全特征篡改拦截。"); }
+
+      function triggerLock(msg) { document.addEventListener("DOMContentLoaded", () => { document.getElementById('securitySub').innerText = msg; document.getElementById('securityAuth').style.display = 'flex'; }); }
+      function showAppContainer() { document.addEventListener("DOMContentLoaded", () => { document.getElementById('appContainer').style.display = 'flex'; }); }
+    })();
+
+    const CACHE_KEY = 'cnchar_dict_cache_v15'; 
+    let dictData = { radical: {}, stroke: {} };
+    let currentResults = []; 
+    let basketList = []; 
+
+    const RADICAL_PATCH = { '箫': '竹', '萧': '艹' };
+
+    // 🌟 五行转标准天干的映射字典（用于普通汉字兜底六神推算）
+    const WUXING_TO_STEM = { '木': '甲', '火': '丙', '土': '戊', '金': '庚', '水': '壬' };
+
+    const LIUSHEN_MAP = {
+      '甲': { '甲':'比', '乙':'劫', '丙':'食', '丁':'伤', '戊':'才', '己':'财', '庚':'杀', '辛':'官', '壬':'卩', '癸':'印' },
+      '乙': { '甲':'败', '乙':'比', '丙':'伤', '丁':'食', '戊':'财', '己':'开', '庚':'官', '辛':'杀', '壬':'印', '癸':'卩' },
+      '丙': { '甲':'卩', '乙':'印', '丙':'比', '丁':'劫', '戊':'食', '己':'伤', '庚':'才', '辛':'财', '壬':'杀', '癸':'官' },
+      '丁': { '甲':'印', '乙':'卩', '丙':'败', '丁':'比', '戊':'伤', '己':'食', '庚':'财', '辛':'才', '壬':'官', '癸':'杀' },
+      '戊': { '甲':'杀', '乙':'官', '丙':'卩', '丁':'印', '戊':'比', '己':'劫', '庚':'食', '辛':'伤', '壬':'才', '癸':'财' },
+      '己': { '甲':'官', '乙':'杀', '丙':'印', '丁':'卩', '戊':'败', '己':'比', '庚':'伤', '辛':'食', '壬':'财', '癸':'才' },
+      '庚': { '甲':'才', '乙':'财', '丙':'杀', '丁':'官', '戊':'卩', '己':'印', '庚':'比', '辛':'劫', '壬':'食', '癸':'伤' },
+      '辛': { '甲':'财', '乙':'才', '丙':'官', '丁':'杀', '戊':'印', '己':'卩', '庚':'败', '辛':'比', '壬':'伤', '癸':'食' },
+      '壬': { '甲':'食', '乙':'伤', '丙':'才', '丁':'财', '戊':'杀', '己':'官', '庚':'卩', '辛':'印', '壬':'比', '癸':'劫' },
+      '癸': { '甲':'伤', '乙':'食', '丙':'财', '丁':'才', '戊':'官', '己':'杀', '庚':'印', '辛':'卩', '壬':'败', '癸':'比' },
+      '子': { '甲':'印', '乙':'劫', '丙':'食', '丁':'伤', '戊':'才', '己':'财', '庚':'杀', '辛':'官', '壬':'卩', '癸':'印' },
+      '丑': { '甲':'败', '乙':'比', '丙':'伤', '丁':'食', '戊':'财', '己':'才', '庚':'官', '辛':'杀', '壬':'印', '癸':'卩' },
+      '寅': { '甲':'禄', '乙':'印', '丙':'比', '丁':'劫', '戊':'食', '己':'伤', '庚':'才', '辛':'财', '壬':'杀', '癸':'官' },
+      '卯': { '甲':'刃', '乙':'卩', '丙':'败', '丁':'比', '戊':'伤', '己':'食', '庚':'财', '辛':'开', '壬':'官', '癸':'杀' },
+      '辰': { '甲':'杀', '乙':'官', '丙':'卩', '丁':'印', '戊':'比', '己':'劫', '庚':'食', '辛':'伤', '壬':'才', '癸':'财' },
+      '巳': { '甲':'才', '乙':'杀', '丙':'印', '丁':'卩', '戊':'败', '己':'比', '庚':'伤', '辛':'食', '壬':'财', '癸':'才' },
+      '午': { '甲':'财', '乙':'财', '丙':'杀', '丁':'官', '戊':'卩', '己':'印', '庚':'比', '辛':'劫', '壬':'食', '癸':'伤' },
+      '未': { '甲':'库', '乙':'才', '丙':'官', '丁':'杀', '戊':'印', '己':'卩', '庚':'败', '辛':'比', '壬':'伤', '癸':'食' },
+      '申': { '甲':'杀', '乙':'伤', '丙':'才', '丁':'财', '戊':'杀', '己':'官', '庚':'卩', '辛':'印', '壬':'比', '癸':'劫' },
+      '酉': { '甲':'伤', '乙':'食', '丙':'财', '丁':'才', '戊':'官', '己':'杀', '庚':'印', '辛':'卩', '壬':'败', '癸':'比' },
+      '戌': { '甲':'食', '乙':'伤', '丙':'才', '丁':'财', '戊':'杀', '己':'官', '庚':'卩', '辛':'印', '壬':'比', '癸':'劫' },
+      '亥': { '甲':'伤', '乙':'食', '丙':'财', '丁':'才', '戊':'官', '己':'杀', '庚':'印', '辛':'卩', '壬':'败', '癸':'比' }
+    };
+
+    const STANDARD_RADICAL_TABLE = {
+      1: ['一', '丨', '丿', '丶', '乙', '亅'],
+      2: ['二', '十', '厂', '匚', '卜', '冂', '八', '人', '亻', '勹', '儿', '匕', '几', '亠', '冫', '冖', '凵', '卩', '刀', '刂', '力', '又', '厶', '廴', '阝', '讠'],
+      3: ['干', '工', '土', '士', '艹', '寸', '廾', '大', '尢', '弋', '小', '口', '囗', '山', '巾', '彳', '三', '彡', '夕', '夂', '广', '门', '宀', '辶', '彐', '尸', '己', '弓', '子', '女', '飞', '马', '幺', '巛', '犭', '氵', '忄', '纟', '饣'],
+      4: ['王', '无', '韦', '木', '支', '犬', '歹', '车', '牙', '戈', '比', '瓦', '止', '攴', '攵', '日', '曰', '水', '贝', '见', '牛', '手', '扌', '气', '毛', '长', '片', '斤', '爪', '爫', '父', '月', '氏', '欠', '风', '殳', '文', '方', '火', '灬', '斗', '户', '礻', '心', '肀', '毋', '老', '巴', '爻'],
+      5: ['玉', '示', '甘', '石', '龙', '业', '目', '田', '罒', '皿', '钅', '生', '矢', '禾', '白', '瓜', '鸟', '疒', '立', '穴', '衣', '衣', '衣', '衤', '疋', '皮', '矛', '母'],
+      6: ['耒', '老', '耳', '臣', '西', '覀', '而', '页', '至', '虍', '虫', '肉', '缶', '舌', '竹', '⺮', '臼', '自', '血', '舟', '色', '齐', '羊', '米', '聿', '糸', '艮', '羽'],
+      7: ['麦', '走', '赤', '豆', '酉', '辰', '豕', '卤', '里', '足', '身', '采', '谷', '豸', '角', '言', '辛'],
+      8: ['青', '雨', '齿', '隹', '隶', '金', '鱼'],
+      9: ['革', '骨', '鬼', '食', '音', '首', '香'],
+      10: ['放', '鬯', '鬲', '高'], 11: ['麻', '鹿', '黄'], 12: ['鼎', '黑', '黍'], 13: ['鼓', '鼠'], 14: ['鼻'], 16: ['龙', '龟'], 17: ['龠']
+    };
+
+    const NANJIANZI_TABLE = {
+      2: ['卜', '乜', '九', '七', '丁', '二', '力', '入'],
+      3: ['三', '下', '个', '久', '丸', '夕', '及', '大', '凡', '也', '彐', '丈', '川'],
+      4: ['丑', '专', '且', '丕', '世', '丘', '丙', '业', '丛', '东', '丝', '主', '乍', '乎', '乏', '乐', '乔', '爻', '屯', '毋'],
+      5: ['凸', '凹', '册', '出', '冉', '央', '失', '乍', '包', '民', '弗', '出', '皮', '奴'],
+      6: ['吏', '夷', '曲', '肉', '自', '舟', '色', '齐', '衣', '米', '聿', '兆', '朱', '串'],
+      7: ['串', '克', '免', '夋', '皂', '貌', '身', '剃', '卵', '系', '里', '妥', '甫', '更', '束', '两'],
+      8: ['秉', '乖', '事', '非', '周', '乳', '典', '亟', '委', '季', '孤', '官', '孟'],
+      9: ['柬', '禹', '禺', '重', '鬼', '食', '首', '香', '甚', '革', '面', '契'],
+      10: ['兼', '脊', '高', '索', '袁', '蚩', '唐', '益'],
+      11: ['剪', '兽', '黄', '鹿', '麻', '商', '率', '章'],
+      12: ['鼎', '黑', '黍', '曾', '辜', '奥', '番'],
+      13: ['鼓', '鼠', '解', '詹', '毅'], 14: ['鼻', '豪', '膏'], 15: ['僵', '趣', '樊'], 16: ['龙', '龟', '冀'], 17: ['龠', '囊']
+    };
+
+    function toggleBasket() {
+      const panel = document.getElementById('basketPanel');
+      panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+      if(panel.style.display === 'flex') renderBasket();
+    }
+
+    function openDrawer() { document.getElementById('rightResultPanel').classList.add('drawer-open'); }
+    function closeDrawer() { document.getElementById('rightResultPanel').classList.remove('drawer-open'); }
+
+    function deriveYinyang(char) {
+      let tone = cnchar.spell(char, 'initial');
+      let sm = (Array.isArray(tone) ? tone[0] : tone) || '';
+      sm = sm.toLowerCase();
+      let result = { sm: sm || '零声母', yinyin: '宫', wuxing: '土', buwei: '喉音' };
+      if (!sm) return result;
+
+      if (['b', 'p', 'm', 'f'].includes(sm)) { result.yinyin = '羽'; result.wuxing = '水'; result.buwei = '唇音'; } 
+      else if (['d', 't', 'n', 'l'].includes(sm)) { result.yinyin = '徵'; result.wuxing = '火'; result.buwei = '舌音'; } 
+      else if (['g', 'k', 'h'].includes(sm)) { result.yinyin = '角'; result.wuxing = '木'; result.buwei = '牙音'; } 
+      else if (['z', 'c', 's', 'zh', 'ch', 'sh', 'r', 'j', 'q', 'x'].includes(sm)) { result.yinyin = '商'; result.wuxing = '金'; result.buwei = '齿音'; } 
+      else { result.yinyin = '宫'; result.wuxing = '土'; result.buwei = '喉音'; }
+      return result;
+    }
+
+    function getSafeRadical(char) {
+      if (RADICAL_PATCH[char]) return RADICAL_PATCH[char];
+      try {
+        const res = cnchar.radical(char);
+        if (!res) return '无';
+        if (typeof res === 'string') return res;
+        if (Array.isArray(res)) return typeof res[0] === 'object' ? (res[0].radical || '无') : res[0];
+        return res.radical || '无';
+      } catch (e) { return '无'; }
+    }
+
+    function initData() {
+      if (!isAccessGranted) return; 
+      const statusEl = document.getElementById('status');
+      const cached = localStorage.getItem(CACHE_KEY);
+
+      if (cached) {
+        dictData = JSON.parse(cached);
+        statusEl.innerText = '✅ 安全环境检测通过：全量结构化检索网加载就绪';
+        switchView('radical');
+        return;
+      }
+
+      statusEl.innerText = '⏳ 正在构建底层检索关系网络...';
+      setTimeout(() => {
+        for (let i = 0x4e00; i <= 0x9fa5; i++) {
+          const char = String.fromCharCode(i);
+          const rad = getSafeRadical(char);
+          const stroke = cnchar.stroke(char);
+          if (rad && rad !== '无') { dictData.radical[rad] = dictData.radical[rad] || []; dictData.radical[rad].push(char); }
+          if (stroke) { dictData.stroke[stroke] = dictData.stroke[stroke] || []; dictData.stroke[stroke].push(char); }
+        }
+        localStorage.setItem(CACHE_KEY, JSON.stringify(dictData));
+        statusEl.innerText = '✅ 字典多端自适应网络构建成功！';
+        switchView('radical');
+      }, 50);
+    }
+
+    function switchView(view) {
+      document.getElementById('tab-radical').classList.toggle('active', view === 'radical');
+      document.getElementById('tab-nanjianzi').classList.toggle('active', view === 'nanjianzi');
+      if (view === 'radical') renderRadicalIndex();
+      else renderNanJianZiIndex();
+      document.getElementById('mainPanel').style.display = 'block';
+    }
+
+    function renderRadicalIndex() {
+      const container = document.getElementById('panelContent');
+      let html = '';
+      Object.keys(STANDARD_RADICAL_TABLE).forEach(stroke => {
+        html += `<div class="stroke-group"><div class="stroke-title">${stroke} 画</div><div class="tags-container">`;
+        STANDARD_RADICAL_TABLE[stroke].forEach(rad => {
+          const count = dictData.radical[rad] ? dictData.radical[rad].length : 0;
+          html += count > 0 
+            ? `<span class="rad-tag" onclick="quickSearch('radical', '${rad}')">${rad}</span>`
+            : `<span class="rad-tag empty">${rad}</span>`;
+        });
+        html += `</div></div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function renderNanJianZiIndex() {
+      const container = document.getElementById('panelContent');
+      let html = '';
+      Object.keys(NANJIANZI_TABLE).forEach(stroke => {
+        html += `<div class="stroke-group"><div class="stroke-title">${stroke} 画</div><div class="tags-container">`;
+        NANJIANZI_TABLE[stroke].forEach(char => {
+          html += `<span class="word-tag" onclick="pushToBasket('${char}')">${char}</span>`;
+        });
+        html += `</div></div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function quickSearch(type, val) {
+      if (type === 'radical') {
+        document.getElementById('radicalInput').value = val;
+        document.getElementById('strokeInput').value = ''; 
+        search('radical', val);
+      }
+    }
+
+    function search(type, directVal = null) {
+      let resultArr = [];
+      if (type === 'radical') {
+        const val = directVal || document.getElementById('radicalInput').value.trim();
+        resultArr = dictData.radical[val] || [];
+      } else if (type === 'stroke') {
+        const val = document.getElementById('strokeInput').value.trim();
+        resultArr = dictData.stroke[val] || [];
+      }
+      currentResults = resultArr; 
+      buildStrokeFilterDropdown(resultArr); 
+      renderFilteredResults(resultArr);
+      openDrawer(); 
+    }
+
+    function buildStrokeFilterDropdown(arr) {
+      const select = document.getElementById('strokeFilterSelect');
+      const filterDiv = document.getElementById('resultFilter');
+      const strokeSet = new Set();
+      arr.forEach(char => { const s = cnchar.stroke(char); if (s) strokeSet.add(s); });
+
+      if (strokeSet.size > 1) {
+        filterDiv.style.display = 'flex';
+        const sortedStrokes = Array.from(strokeSet).sort((a, b) => a - b);
+        let optionsHtml = '<option value="all">全部</option>';
+        sortedStrokes.forEach(s => { optionsHtml += `<option value="${s}">${s} 画</option>`; });
+        select.innerHTML = optionsHtml;
+        select.value = 'all';
+      } else { filterDiv.style.display = 'none'; }
+    }
+
+    function applyStrokeFilter() {
+      const selectedStroke = document.getElementById('strokeFilterSelect').value;
+      if (selectedStroke === 'all') { renderFilteredResults(currentResults); } 
+      else { renderFilteredResults(currentResults.filter(char => cnchar.stroke(char) == selectedStroke)); }
+    }
+
+    function renderFilteredResults(arr) {
+      const container = document.getElementById('result');
+      if (arr.length === 0) { container.innerText = '无匹配结果'; return; }
+      let html = '';
+      arr.forEach(char => { html += `<span class="result-char" onclick="pushToBasket('${char}')" title="点击推入选字篮">${char}</span>`; });
+      container.innerHTML = html;
+    }
+
+    function pushToBasket(char) {
+      // 🛒 强制开启选字篮面版，实现“点击即展示”的直观交互
+      document.getElementById('basketPanel').style.display = 'flex';
+
+      if (basketList.some(item => item.char === char)) {
+        renderBasket();
+        return;
+      }
+      const pinyin = cnchar.spell(char) || '未知';
+      const stroke = cnchar.stroke(char) || '0';
+      const rad = getSafeRadical(char);
+      const derived = deriveYinyang(char);
+
+      basketList.push({
+        char: char, yinyin: derived.yinyin, wuxing: derived.wuxing, buwei: derived.buwei, sm: derived.sm,
+        pinyin: Array.isArray(pinyin) ? pinyin[0] : pinyin, rad: rad, stroke: stroke, bak: '', ziyi: ''
+      });
+      renderBasket();
+    }
+
+    function removeFromBasket(index) { basketList.splice(index, 1); renderBasket(); }
+    function clearBasket() { basketList = []; renderBasket(); }
+    
+    function updateBasketField(index, field, value) { 
+      basketList[index][field] = value; 
+    }
+
+    function renderBasket() {
+      document.getElementById('basketCount').innerText = basketList.length;
+      document.getElementById('basketCountBadge').innerText = basketList.length;
+      
+      const tbody = document.getElementById('basketBody');
+      if (basketList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" style="color:#999; padding:15px; text-align:center;">🛒 选字工作台空空如也...</td></tr>`;
+        return;
+      }
+
+      const riyuan = document.getElementById('riyuanSelect').value;
+
+      let html = '';
+      basketList.forEach((item, index) => {
+        // 🔮 六神动态计算升级核心段
+        let dynamicLiuShen = '';
+        if (riyuan !== 'none') {
+          // 如果汉字自身具备特定的干支映射规则，则使用自身；否则将其“五行”转换为对应天干进行匹配
+          let lookupKey = LIUSHEN_MAP[item.char] ? item.char : (WUXING_TO_STEM[item.wuxing] || '');
+          if (lookupKey && LIUSHEN_MAP[lookupKey]) {
+            dynamicLiuShen = LIUSHEN_MAP[lookupKey][riyuan] || '';
+          }
+        }
+
+        html += `
+          <tr>
+            <td><strong style="color:#3182ce; font-size:1.15rem; cursor:pointer;" onclick="openDictLink('${item.char}')">${item.char}</strong></td>
+            <td><span style="background:#edf2f7; padding:1px 5px; border-radius:4px; font-weight:bold;">${item.yinyin}</span></td>
+            <td><strong>${item.wuxing}</strong></td>
+            <td style="color:#718096;">${item.buwei}</td>
+            <td style="color:#dd6b20; font-weight:500;">${item.sm}</td>
+            <td style="color:#2b6cb0;">${item.pinyin}</td>
+            <td>${item.rad}</td>
+            <td>${item.stroke}</td>
+            <td>
+              <span style="${dynamicLiuShen ? 'background:#feebc8; color:#c05621; padding:2px 6px; border-radius:4px; font-weight:bold;' : ''}">
+                ${dynamicLiuShen || '-'}
+              </span>
+            </td>
+            <td><input type="text" class="table-input" value="${item.bak}" oninput="updateBasketField(${index}, 'bak', this.value)" placeholder="备注"></td>
+            <td>
+              <div style="display:flex; align-items:center; gap:4px; justify-content:center;">
+                <input type="text" class="table-input" style="width:75px;" value="${item.ziyi || ''}" oninput="updateBasketField(${index}, 'ziyi', this.value)" placeholder="输入字义">
+                <a href="javascript:void(0)" onclick="openDictLink('${item.char}')" title="查字义外链" style="text-decoration:none; font-size:1.05rem;">🔗</a>
+              </div>
+            </td>
+            <td><button class="del-btn" onclick="removeFromBasket(${index})">删除</button></td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function exportBasketText() {
+      if (basketList.length === 0) {
+        alert("选字篮为空，无需导出！");
+        return;
+      }
+      const riyuan = document.getElementById('riyuanSelect').value;
+      const riyuanText = riyuan === 'none' ? '未选择' : riyuan;
+      
+      let text = `选字篮导出报告 (当前日元: ${riyuanText})\n`;
+      text += "汉字\t五音\t五行\t部位\t声母\t拼音\t部首\t笔画\t六神\t备注\t字义\n";
+      
+      basketList.forEach(item => {
+        let lookupKey = LIUSHEN_MAP[item.char] ? item.char : (WUXING_TO_STEM[item.wuxing] || '');
+        let dynamicLiuShen = (riyuan !== 'none' && LIUSHEN_MAP[lookupKey]) ? (LIUSHEN_MAP[lookupKey][riyuan] || '-') : '-';
+        text += `${item.char}\t${item.yinyin}\t${item.wuxing}\t${item.buwei}\t${item.sm}\t${item.pinyin}\t${item.rad}\t${item.stroke}\t${dynamicLiuShen}\t${item.bak || '-'}\t${item.ziyi || '-'}\n`;
+      });
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          alert("📋 选字篮数据已成功复制到剪切板！（可直接粘贴到 Excel 表格中）");
+        }).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed"; 
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        alert("📋 选字篮数据已成功复制到剪切板！（可直接粘贴到 Excel 表格中）");
+      } catch (err) {
+        alert("复制失败，请手动选择复制：\n\n" + text);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function openDictLink(char) { window.open(`https://mzidian.qianp.com/zi/${encodeURIComponent(char)}`, '_blank'); }
+
+    window.onload = function() {
+      initData();
+      renderBasket();
+    };
+  </script>
+</body>
+</html>
