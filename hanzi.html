@@ -6,6 +6,7 @@
   <title>汉字结构化检索与音韵工作台</title>
   <script src="https://cdn.jsdelivr.net/npm/cnchar/cnchar.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cnchar-radical/cnchar.radical.min.js"></script>
+  <!-- 📈 引入不蒜子无后端统计脚本 -->
   <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
   <style>
     body { 
@@ -108,6 +109,7 @@
     <div id="status">正在安全扫描并初始化 data network...</div>
 
     <div class="layout">
+      <!-- 左面板 -->
       <div class="left-panel">
         <div class="card" id="mainPanel" style="display: none; height: auto;">
           <div class="tabs">
@@ -130,6 +132,7 @@
         </div>
       </div>
 
+      <!-- 右面板 -->
       <div class="right-panel" id="rightResultPanel">
         <div class="card">
           <h3 class="card-title">
@@ -145,15 +148,18 @@
       </div>
     </div>
 
+    <!-- 🛒 选字篮悬浮按钮 -->
     <button class="basket-float-btn" onclick="toggleBasket()">
       <span>🛒 选字篮</span>
       <span id="basketCountBadge" style="background:#fff; color:#dd6b20; padding:1px 6px; border-radius:20px; font-size:0.8rem;">0</span>
     </button>
 
+    <!-- 🛒 选字篮工作台面 -->
     <div class="card basket-float-panel" id="basketPanel">
       <h3 class="card-title" style="margin-bottom: 0.4rem;">
         <span>🛒 选字工作台 (<span id="basketCount" style="color:#3182ce;">0</span>)</span>
         
+        <!-- ☯️ 日元动态选择联动 -->
         <div style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; margin-left: auto; margin-right: 12px; background: #f7fafc; padding: 2px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
           <span style="font-weight: bold; color: #4a5568;">日元:</span>
           <select id="riyuanSelect" onchange="renderBasket()" style="padding: 2px; border-radius: 4px; border: 1px solid #cbd5e0; outline: none; font-size: 0.8rem; cursor: pointer;">
@@ -192,6 +198,7 @@
       </div>
     </div>
 
+    <!-- 📊 不蒜子数据计数视图 -->
     <div id="busuanzi_container" style="text-align: center; font-size: 0.75rem; color: #718096; margin-top: 10px; padding: 4px 0;">
       ✨ 本页阅读量：<span id="busuanzi_value_page_pv" style="color:#3182ce; font-weight:bold;"></span> 次 | 
       总访问人数：<span id="busuanzi_value_site_uv" style="color:#3182ce; font-weight:bold;"></span> 人
@@ -230,8 +237,6 @@
     let basketList = []; 
 
     const RADICAL_PATCH = { '箫': '竹', '萧': '艹' };
-
-    // 🌟 五行转标准天干的映射字典（用于普通汉字兜底六神推算）
     const WUXING_TO_STEM = { '木': '甲', '火': '丙', '土': '戊', '金': '庚', '水': '壬' };
 
     const LIUSHEN_MAP = {
@@ -296,12 +301,25 @@
     function openDrawer() { document.getElementById('rightResultPanel').classList.add('drawer-open'); }
     function closeDrawer() { document.getElementById('rightResultPanel').classList.remove('drawer-open'); }
 
+    // 🔮 高精度动态声母音韵解析逻辑
     function deriveYinyang(char) {
-      let tone = cnchar.spell(char, 'initial');
-      let sm = (Array.isArray(tone) ? tone[0] : tone) || '';
-      sm = sm.toLowerCase();
-      let result = { sm: sm || '零声母', yinyin: '宫', wuxing: '土', buwei: '喉音' };
-      if (!sm) return result;
+      let py = cnchar.spell(char, 'low'); // 获取纯小写拼音
+      if (Array.isArray(py)) py = py[0];
+      
+      let sm = '零声母';
+      if (py) {
+        if (py.startsWith('zh')) sm = 'zh';
+        else if (py.startsWith('ch')) sm = 'ch';
+        else if (py.startsWith('sh')) sm = 'sh';
+        else {
+          let firstChar = py.charAt(0);
+          if (['b','p','m','f','d','t','n','l','g','k','h','j','q','x','z','c','s','r'].includes(firstChar)) {
+            sm = firstChar;
+          }
+        }
+      }
+
+      let result = { sm: sm, yinyin: '宫', wuxing: '土', buwei: '喉音' };
 
       if (['b', 'p', 'm', 'f'].includes(sm)) { result.yinyin = '羽'; result.wuxing = '水'; result.buwei = '唇音'; } 
       else if (['d', 't', 'n', 'l'].includes(sm)) { result.yinyin = '徵'; result.wuxing = '火'; result.buwei = '舌音'; } 
@@ -440,7 +458,6 @@
     }
 
     function pushToBasket(char) {
-      // 🛒 强制开启选字篮面版，实现“点击即展示”的直观交互
       document.getElementById('basketPanel').style.display = 'flex';
 
       if (basketList.some(item => item.char === char)) {
@@ -450,11 +467,15 @@
       const pinyin = cnchar.spell(char) || '未知';
       const stroke = cnchar.stroke(char) || '0';
       const rad = getSafeRadical(char);
-      const derived = deriveYinyang(char);
 
+      // 数据层仅保留基础属性，音韵五行和六神统一改为在视图渲染层实时动态推算
       basketList.push({
-        char: char, yinyin: derived.yinyin, wuxing: derived.wuxing, buwei: derived.buwei, sm: derived.sm,
-        pinyin: Array.isArray(pinyin) ? pinyin[0] : pinyin, rad: rad, stroke: stroke, bak: '', ziyi: ''
+        char: char,
+        pinyin: Array.isArray(pinyin) ? pinyin[0] : pinyin, 
+        rad: rad, 
+        stroke: stroke, 
+        bak: '', 
+        ziyi: ''
       });
       renderBasket();
     }
@@ -480,11 +501,13 @@
 
       let html = '';
       basketList.forEach((item, index) => {
-        // 🔮 六神动态计算升级核心段
+        // 🔮 100% 实时动态推演音韵核心数据，完美包容任何新增字
+        const derived = deriveYinyang(item.char);
+        
+        // 🔮 基于最新动态五行实时计算六神
         let dynamicLiuShen = '';
         if (riyuan !== 'none') {
-          // 如果汉字自身具备特定的干支映射规则，则使用自身；否则将其“五行”转换为对应天干进行匹配
-          let lookupKey = LIUSHEN_MAP[item.char] ? item.char : (WUXING_TO_STEM[item.wuxing] || '');
+          let lookupKey = LIUSHEN_MAP[item.char] ? item.char : (WUXING_TO_STEM[derived.wuxing] || '');
           if (lookupKey && LIUSHEN_MAP[lookupKey]) {
             dynamicLiuShen = LIUSHEN_MAP[lookupKey][riyuan] || '';
           }
@@ -493,10 +516,10 @@
         html += `
           <tr>
             <td><strong style="color:#3182ce; font-size:1.15rem; cursor:pointer;" onclick="openDictLink('${item.char}')">${item.char}</strong></td>
-            <td><span style="background:#edf2f7; padding:1px 5px; border-radius:4px; font-weight:bold;">${item.yinyin}</span></td>
-            <td><strong>${item.wuxing}</strong></td>
-            <td style="color:#718096;">${item.buwei}</td>
-            <td style="color:#dd6b20; font-weight:500;">${item.sm}</td>
+            <td><span style="background:#edf2f7; padding:1px 5px; border-radius:4px; font-weight:bold;">${derived.yinyin}</span></td>
+            <td><strong>${derived.wuxing}</strong></td>
+            <td style="color:#718096;">${derived.buwei}</td>
+            <td style="color:#dd6b20; font-weight:500;">${derived.sm}</td>
             <td style="color:#2b6cb0;">${item.pinyin}</td>
             <td>${item.rad}</td>
             <td>${item.stroke}</td>
@@ -531,9 +554,10 @@
       text += "汉字\t五音\t五行\t部位\t声母\t拼音\t部首\t笔画\t六神\t备注\t字义\n";
       
       basketList.forEach(item => {
-        let lookupKey = LIUSHEN_MAP[item.char] ? item.char : (WUXING_TO_STEM[item.wuxing] || '');
+        const derived = deriveYinyang(item.char);
+        let lookupKey = LIUSHEN_MAP[item.char] ? item.char : (WUXING_TO_STEM[derived.wuxing] || '');
         let dynamicLiuShen = (riyuan !== 'none' && LIUSHEN_MAP[lookupKey]) ? (LIUSHEN_MAP[lookupKey][riyuan] || '-') : '-';
-        text += `${item.char}\t${item.yinyin}\t${item.wuxing}\t${item.buwei}\t${item.sm}\t${item.pinyin}\t${item.rad}\t${item.stroke}\t${dynamicLiuShen}\t${item.bak || '-'}\t${item.ziyi || '-'}\n`;
+        text += `${item.char}\t${derived.yinyin}\t${derived.wuxing}\t${derived.buwei}\t${derived.sm}\t${item.pinyin}\t${item.rad}\t${item.stroke}\t${dynamicLiuShen}\t${item.bak || '-'}\t${item.ziyi || '-'}\n`;
       });
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
