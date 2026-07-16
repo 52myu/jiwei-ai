@@ -56,7 +56,6 @@ body {
 a { color: inherit; text-decoration: none; }
 img { display: block; max-width: 100%; }
 
-/* ========== Particle Canvas ========== */
 #particleCanvas {
     position: fixed;
     top: 0; left: 0;
@@ -66,7 +65,6 @@ img { display: block; max-width: 100%; }
     opacity: 0.35;
 }
 
-/* ========== Layout ========== */
 .section-inner {
     max-width: 1200px;
     margin: 0 auto;
@@ -296,7 +294,6 @@ img { display: block; max-width: 100%; }
     flex-wrap: wrap;
 }
 
-/* Buttons */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -336,7 +333,6 @@ img { display: block; max-width: 100%; }
     box-shadow: 0 0 20px rgba(34, 211, 238, 0.1);
 }
 
-/* Avatar */
 .hero-image {
     display: flex;
     justify-content: center;
@@ -417,7 +413,6 @@ img { display: block; max-width: 100%; }
     object-fit: cover;
 }
 
-/* Scroll Indicator */
 .scroll-indicator {
     position: absolute;
     bottom: 2rem;
@@ -569,7 +564,7 @@ img { display: block; max-width: 100%; }
     background: rgba(34, 211, 238, 0.06);
 }
 
-/* ========== Experience (Timeline) ========== */
+/* ========== Experience (FIXED TIMELINE) ========== */
 .experience {
     padding: 8rem 0;
     border-top: 1px solid var(--border);
@@ -577,9 +572,10 @@ img { display: block; max-width: 100%; }
 
 .timeline {
     position: relative;
-    padding-left: 3rem;
+    padding-left: 2.2rem;
 }
 
+/* 左侧垂直线 */
 .timeline::before {
     content: '';
     position: absolute;
@@ -591,18 +587,21 @@ img { display: block; max-width: 100%; }
     border-radius: 2px;
 }
 
+/* 每个时间线项 */
 .timeline-item {
     position: relative;
     padding-bottom: 3.5rem;
+    padding-left: 2rem;
 }
 
 .timeline-item:last-child {
     padding-bottom: 0;
 }
 
+/* 圆点标记 */
 .timeline-marker {
     position: absolute;
-    left: -3rem;
+    left: -2.5rem;
     top: 6px;
     width: 12px;
     height: 12px;
@@ -618,6 +617,7 @@ img { display: block; max-width: 100%; }
     box-shadow: 0 0 16px rgba(34, 211, 238, 0.5);
 }
 
+/* 内容卡片 */
 .timeline-content {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -996,7 +996,6 @@ img { display: block; max-width: 100%; }
     border-style: solid;
 }
 
-/* Form */
 .contact-form-wrapper {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -1135,6 +1134,16 @@ img { display: block; max-width: 100%; }
 
 .footer-bottom p {
     font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.footer-stats {
+    max-width: 1200px;
+    margin: 1.5rem auto 0;
+    padding: 0 2rem;
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 0.75rem;
     color: var(--text-muted);
 }
 
@@ -1291,13 +1300,8 @@ img { display: block; max-width: 100%; }
     .about-highlights {
         grid-template-columns: 1fr;
     }
-
-    .stat-number {
-        font-size: 2rem;
-    }
 }
 
-/* ========== Reduced Motion ========== */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -1314,7 +1318,6 @@ img { display: block; max-width: 100%; }
     }
 }
 
-/* ========== Focus ========== */
 :focus-visible {
     outline: 2px solid var(--cyan);
     outline-offset: 2px;
