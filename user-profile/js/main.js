@@ -159,24 +159,6 @@ if (mobileToggle && navMenu) {
     });
 }
 
-// ========== 滚动入场动画 ==========
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -40px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-        }
-    });
-}, observerOptions);
-
-document.querySelectorAll('.fade-up').forEach(el => {
-    observer.observe(el);
-});
-
 // ========== 数字动画 ==========
 function animateNumber(element, target, duration = 2000) {
     let start = 0;
@@ -184,10 +166,10 @@ function animateNumber(element, target, duration = 2000) {
     const timer = setInterval(() => {
         start += increment;
         if (start >= target) {
-            element.textContent = target;
+            element.textContent = target + '+';
             clearInterval(timer);
         } else {
-            element.textContent = Math.floor(start);
+            element.textContent = Math.floor(start) + '+';
         }
     }, 16);
 }
@@ -204,13 +186,14 @@ const numberObserver = new IntersectionObserver((entries) => {
     });
 }, { threshold: 0.5 });
 
-document.querySelectorAll('.stat-number').forEach(el => {
+document.querySelectorAll('.highlight-number').forEach(el => {
     numberObserver.observe(el);
 });
 
 // ========== Toast ==========
 function showToast(msg) {
     const toast = document.getElementById('toast');
+    if (!toast) return;
     toast.textContent = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 2000);
