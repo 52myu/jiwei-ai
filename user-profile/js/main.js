@@ -1,22 +1,122 @@
-// 导航栏滚动效果
+// ========== 粒子背景 ==========
+(function initParticles() {
+    const canvas = document.getElementById('particleCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let mouse = { x: null, y: null };
+    let animId;
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+
+    class Particle {
+        constructor() {
+            this.reset();
+        }
+        reset() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 2 + 0.5;
+            this.speedX = (Math.random() - 0.5) * 0.5;
+            this.speedY = (Math.random() - 0.5) * 0.5;
+            this.opacity = Math.random() * 0.5 + 0.1;
+            this.color = ['34,211,238', '139,92,246', '236,72,153'][Math.floor(Math.random() * 3)];
+        }
+        update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+
+            if (mouse.x !== null) {
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 120) {
+                    this.x -= dx * 0.01;
+                    this.y -= dy * 0.01;
+                }
+            }
+
+            if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.color},${this.opacity})`;
+            ctx.fill();
+        }
+    }
+
+    const count = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
+    for (let i = 0; i < count; i++) {
+        particles.push(new Particle());
+    }
+
+    function connectParticles() {
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 150) {
+                    const opacity = (1 - dist / 150) * 0.15;
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(34,211,238,${opacity})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        connectParticles();
+        animId = requestAnimationFrame(animate);
+    }
+    animate();
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelAnimationFrame(animId);
+        } else {
+            animate();
+        }
+    });
+})();
+
+// ========== 导航栏 ==========
 const navbar = document.querySelector('.navbar');
 const navLinks = document.querySelectorAll('.nav-link');
 const sections = document.querySelectorAll('section[id]');
 
 window.addEventListener('scroll', () => {
-    // 导航栏阴影效果
     if (window.scrollY > 50) {
-        navbar.classList.add('scrolled');
+        navbar.style.background = 'rgba(3, 7, 18, 0.95)';
     } else {
-        navbar.classList.remove('scrolled');
+        navbar.style.background = 'rgba(3, 7, 18, 0.8)';
     }
 
-    // 激活当前部分的导航链接
     let current = '';
     sections.forEach(section => {
-        const sectionTop = section.offsetTop;
-        const sectionHeight = section.clientHeight;
-        if (window.scrollY >= sectionTop - 200) {
+        const sectionTop = section.offsetTop - 120;
+        if (window.scrollY >= sectionTop) {
             current = section.getAttribute('id');
         }
     });
@@ -31,137 +131,105 @@ window.addEventListener('scroll', () => {
 
 // 平滑滚动
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    anchor.addEventListener('click', function(e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
-            const offsetTop = target.offsetTop - 80;
-            window.scrollTo({
-                top: offsetTop,
-                behavior: 'smooth'
-            });
+            const offsetTop = target.offsetTop - 72;
+            window.scrollTo({ top: offsetTop, behavior: 'smooth' });
         }
     });
 });
 
 // 移动端菜单
-const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-const navMenu = document.querySelector('.nav-menu');
+const mobileToggle = document.querySelector('.mobile-toggle');
+const navMenu = document.querySelector('.nav-links');
 
-if (mobileMenuBtn && navMenu) {
-    mobileMenuBtn.addEventListener('click', () => {
-        navMenu.classList.toggle('active');
-        mobileMenuBtn.classList.toggle('active');
+if (mobileToggle && navMenu) {
+    mobileToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('mobile-open');
+        mobileToggle.classList.toggle('active');
     });
 
-    // 点击菜单项后关闭菜单
     navMenu.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', () => {
-            navMenu.classList.remove('active');
-            mobileMenuBtn.classList.remove('active');
+            navMenu.classList.remove('mobile-open');
+            mobileToggle.classList.remove('active');
         });
     });
 }
 
-// 联系表单处理
-const contactForm = document.getElementById('contactForm');
-if (contactForm) {
-    contactForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(this);
-        const name = formData.get('name');
-        const email = formData.get('email');
-        const subject = formData.get('subject');
-        const message = formData.get('message');
-        
-        // 这里可以添加实际的表单提交逻辑
-        // 例如使用 fetch API 发送到后端
-        console.log('表单提交:', { name, email, subject, message });
-        
-        // 显示成功消息
-        alert('感谢您的留言！我会尽快回复您。');
-        this.reset();
-    });
-}
-
-// 滚动动画
+// ========== 滚动入场动画 ==========
 const observerOptions = {
     threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
+    rootMargin: '0px 0px -40px 0px'
 };
 
 const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
+            entry.target.classList.add('visible');
         }
     });
 }, observerOptions);
 
-// 观察所有需要动画的元素
-document.querySelectorAll('.timeline-item, .project-card, .certification-item').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(30px)';
-    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+document.querySelectorAll('.fade-up').forEach(el => {
     observer.observe(el);
 });
 
-// 数字动画
+// ========== 数字动画 ==========
 function animateNumber(element, target, duration = 2000) {
     let start = 0;
     const increment = target / (duration / 16);
     const timer = setInterval(() => {
         start += increment;
         if (start >= target) {
-            element.textContent = target + (element.dataset.suffix || '');
+            element.textContent = target;
             clearInterval(timer);
         } else {
-            element.textContent = Math.floor(start) + (element.dataset.suffix || '');
+            element.textContent = Math.floor(start);
         }
     }, 16);
 }
 
-// 观察数字元素
 const numberObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting && !entry.target.classList.contains('animated')) {
             entry.target.classList.add('animated');
-            const text = entry.target.textContent;
-            const number = parseInt(text);
-            const suffix = text.replace(/[0-9]/g, '');
-            entry.target.dataset.suffix = suffix;
-            if (!isNaN(number)) {
-                animateNumber(entry.target, number);
+            const target = parseInt(entry.target.dataset.target, 10);
+            if (!isNaN(target)) {
+                animateNumber(entry.target, target);
             }
         }
     });
 }, { threshold: 0.5 });
 
-document.querySelectorAll('.highlight-number').forEach(el => {
+document.querySelectorAll('.stat-number').forEach(el => {
     numberObserver.observe(el);
 });
 
-// 初始化完成
-console.log('个人网站已加载完成 ✨');
+// ========== Toast ==========
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+}
 
-// 复制微信号到剪贴板
+// ========== 复制微信号 ==========
 function copyWechat(el) {
     const text = el.textContent.trim();
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function() {
+        navigator.clipboard.writeText(text).then(() => {
             showToast('微信号已复制：' + text);
-        }).catch(function() {
-            fallbackCopy(text);
-        });
+        }).catch(() => fallbackCopy(text));
     } else {
         fallbackCopy(text);
     }
 }
 
 function fallbackCopy(text) {
-    var ta = document.createElement('textarea');
+    const ta = document.createElement('textarea');
     ta.value = text;
     ta.style.position = 'fixed';
     ta.style.left = '-9999px';
@@ -176,14 +244,21 @@ function fallbackCopy(text) {
     document.body.removeChild(ta);
 }
 
-function showToast(msg) {
-    var toast = document.createElement('div');
-    toast.textContent = msg;
-    toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 24px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.15)';
-    document.body.appendChild(toast);
-    requestAnimationFrame(function() { toast.style.opacity = '1'; });
-    setTimeout(function() {
-        toast.style.opacity = '0';
-        setTimeout(function() { document.body.removeChild(toast); }, 300);
-    }, 2000);
+// ========== 联系表单 ==========
+const contactForm = document.getElementById('contactForm');
+if (contactForm) {
+    contactForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        console.log('表单提交:', Object.fromEntries(formData));
+        showToast('消息已发送！我会尽快回复。');
+        this.reset();
+    });
 }
+
+// ========== Console Logo ==========
+console.log(
+    '%c Ji Ji %c 全栈开发工程师 ',
+    'background: linear-gradient(135deg, #22d3ee, #8b5cf6); color: #030712; font-family: monospace; font-size: 16px; font-weight: bold; padding: 6px 12px; border-radius: 6px 0 0 6px;',
+    'background: #111827; color: #22d3ee; font-family: monospace; font-size: 16px; padding: 6px 12px; border-radius: 0 6px 6px 0; border: 1px solid #1e293b;'
+);
